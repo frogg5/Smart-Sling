@@ -1,5 +1,5 @@
 //This version was last updated 4/3 5:48 pm
-
+   
 //jeffreys initialization
 const int AIN1 = 13;           //control pin 1 on the motor driver for the right motor
 const int AIN2 = 12;            //control pin 2 on the motor driver for the right motor
@@ -12,8 +12,13 @@ int timecount = 0;
 #define ADC_VREF_mV    5000.0 // in millivolt
 #define ADC_RESOLUTION 1024.0
 #define PIN_LM35       A1
+int ntc = A0; // Declaration of the sensor input pin
+// Declaration of temporary variables
+double raw_value;
+double voltage;
+double temperature;
 
-int HEATMODEINT = 7; //MODECONTROL: THIS IS WHAT CONTROLS WHAT MODE THE PELTIER STRIP IS ON
+int HEATMODEINT = 8; //MODECONTROL: THIS IS WHAT CONTROLS WHAT MODE THE PELTIER STRIP IS ON
 
 void setup() {
   //jeffreys chunk:
@@ -23,6 +28,8 @@ void setup() {
   pinMode(AIN2, OUTPUT);
   pinMode(PWMA, OUTPUT);
   //Begin serial monitor
+  //a0 temp initialize
+  pinMode(ntc, INPUT);
   Serial.begin(9600);               
   //leftover code -- do not delete this -jeffrey -> //Serial.println("Enter motor speed (0-255 (or -255 to 255))... ");  //Prompt to get input in the serial monitor.
 }
@@ -71,13 +78,18 @@ void loop() {
       break;
     case 6: //COOL 1
       starttimeSeconds = 28;
-      stoptimeSeconds = 32;
+      stoptimeSeconds = 24; //changed
       direction = -1;
       break;
     case 7: //COOL 2
       starttimeSeconds = 10;
       stoptimeSeconds = 16;
       direction = -1; //partial voltage
+      break;
+    case 8: //MAXTESTING DELETE LATER
+      starttimeSeconds = 10;
+      stoptimeSeconds = 0;
+      direction = 1;
       break;
   }
   //MODECONTROL: Do not touch, actual implementation of peltier control
@@ -119,6 +131,16 @@ void loop() {
   Serial.println("°F");
   //keep delay here, refreshes at a rate of 1 loop per 1/2 second. subject to change probably
   */
+  raw_value = analogRead(ntc); 
+  // Read out the voltage using an analog value
+  voltage = raw_value * 5.0 / 1023.0;
+  // Calculation of the temperature using the voltage
+  temperature = ((voltage / 5.0) * 10000.0) / (1.0 - (voltage / 5.0));
+  temperature = 1.0 / ((1.0 / 298.15) + (1.0 / 3950.0) * log(temperature / 10000.0));
+  temperature = temperature - 273.15;
+  temperature = temperature * 9 / 5 + 32;
+  // Output of the measured value
+  Serial.println("Temperature: " + String(temperature) + " °F");
 
   int temperature_reading = 0;
   int safe_temp = 150;
@@ -152,7 +174,3 @@ void spinMotor(int motorValue)
   }
   analogWrite(PWMA, abs(motorValue));
 }
-
-
-
-
